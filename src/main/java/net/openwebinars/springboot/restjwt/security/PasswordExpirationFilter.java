@@ -6,6 +6,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import net.openwebinars.springboot.restjwt.user.model.User;
+import net.openwebinars.springboot.restjwt.user.service.CustomUserDetailsService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -28,8 +29,8 @@ public class PasswordExpirationFilter implements Filter {
 
         User user = getLoggedInUser();
 
-        if (customer != null && customer.isPasswordExpired()) {
-            showChangePasswordPage(response, httpRequest, customer);
+        if (user != null && user.isPasswordExpired()) {
+            showChangePasswordPage(response, httpRequest, user);
         } else {
             chain.doFilter(httpRequest, response);
         }
@@ -57,9 +58,8 @@ public class PasswordExpirationFilter implements Filter {
             principal = authentication.getPrincipal();
         }
 
-        if (principal != null && principal instanceof CustomerUserDetails) {
-            CustomerUserDetails userDetails = (CustomerUserDetails) principal;
-            return userDetails.getCustomer();
+        if (principal != null && principal instanceof CustomUserDetailsService userDetails) {
+            return userDetails.getCustomer(principal);
         }
 
         return null;

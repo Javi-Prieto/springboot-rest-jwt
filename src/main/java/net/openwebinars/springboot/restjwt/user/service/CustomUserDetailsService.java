@@ -2,7 +2,9 @@ package net.openwebinars.springboot.restjwt.user.service;
 
 
 import lombok.RequiredArgsConstructor;
+import net.openwebinars.springboot.restjwt.user.model.User;
 import net.openwebinars.springboot.restjwt.user.repo.UserRepository;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -18,5 +20,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return userService.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("No user with username: " +  username));
+    }
+
+    public User getCustomer(Authentication authentication) {
+        return (User) authentication.getPrincipal();
     }
 }
