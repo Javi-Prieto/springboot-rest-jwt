@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -55,6 +56,12 @@ public class User implements UserDetails {
 
     private String password;
 
+    private static final long PASSWORD_EXPIRATION_TIME
+            = 30L * 24L * 60L * 60L * 1000L;    // 30 days
+
+    @Column(name = "password_changed_time")
+    private Date passwordChangedTime;
+
     private String avatar;
 
     private String fullName;
@@ -85,6 +92,15 @@ public class User implements UserDetails {
                 .map(role -> "ROLE_" + role)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
+    }
+
+    public boolean isPasswordExpired() {
+        if (this.passwordChangedTime == null) return false;
+
+        long currentTime = System.currentTimeMillis();
+        long lastChangedTime = this.passwordChangedTime.getTime();
+
+        return currentTime > lastChangedTime + PASSWORD_EXPIRATION_TIME;
     }
 
     @Override
