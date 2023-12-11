@@ -22,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("No user with username: " +  username));
     }
 
-    public User getCustomer(Authentication authentication) {
-        return (User) authentication.getPrincipal();
+    public User getUser (Object user) {
+        return user.getClass();
     }
 }
