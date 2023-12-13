@@ -6,8 +6,10 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import net.openwebinars.springboot.restjwt.user.model.User;
 import net.openwebinars.springboot.restjwt.user.service.CustomUserDetailsService;
+import net.openwebinars.springboot.restjwt.user.service.UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -16,8 +18,10 @@ import java.util.Date;
 import java.util.logging.Filter;
 import java.util.logging.LogRecord;
 
+@RequiredArgsConstructor
 public class PasswordExpirationFilter implements Filter {
 
+    private final UserService userService;
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain) throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
@@ -61,7 +65,7 @@ public class PasswordExpirationFilter implements Filter {
         }
 
         if (principal != null && principal instanceof CustomUserDetailsService userDetails) {
-            return userDetails.getUser();
+            return userService.findByUsername();
         }
 
         return null;
