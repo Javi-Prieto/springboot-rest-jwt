@@ -65,7 +65,8 @@ public class PasswordExpirationFilter implements Filter {
         }
 
         if (principal != null && principal instanceof CustomUserDetailsService userDetails) {
-            return userService.findByUsername();
+            userDetails = (CustomUserDetailsService) principal;
+            return userService.findByUsername(userDetails.loadUserByUsername(authentication.getName()).getUsername()).orElse(null);
         }
 
         return null;
