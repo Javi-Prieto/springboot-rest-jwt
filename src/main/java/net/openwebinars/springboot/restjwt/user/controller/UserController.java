@@ -4,7 +4,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import net.openwebinars.springboot.restjwt.security.InMemoryBlacklist;
 import net.openwebinars.springboot.restjwt.security.TokenBlacklist;
+import net.openwebinars.springboot.restjwt.security.errorhandling.RefreshException;
 import net.openwebinars.springboot.restjwt.security.jwt.access.JwtProvider;
+import net.openwebinars.springboot.restjwt.security.jwt.refresh.RefreshToken;
+import net.openwebinars.springboot.restjwt.security.jwt.refresh.RefreshTokenService;
+import net.openwebinars.springboot.restjwt.security.jwt.refresh.TokenRefreshRequest;
 import net.openwebinars.springboot.restjwt.user.dto.*;
 import net.openwebinars.springboot.restjwt.user.model.User;
 import net.openwebinars.springboot.restjwt.user.service.UserService;
@@ -29,6 +33,7 @@ public class UserController {
     private final AuthenticationManager authManager;
     private final JwtProvider jwtProvider;
     private final TokenBlacklist tokenBlacklist;
+    private final RefreshTokenService refreshTokenService;
 
 
     @PostMapping("/auth/register")
@@ -51,7 +56,6 @@ public class UserController {
     @PostMapping("/auth/login")
     public ResponseEntity<JwtUserResponse> login(@RequestBody LoginRequest loginRequest) {
 
-        // Realizamos la autenticación
 
         Authentication authentication =
                 authManager.authenticate(
@@ -61,17 +65,18 @@ public class UserController {
                         )
                 );
 
-        // Una vez realizada, la guardamos en el contexto de seguridad
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // Devolvemos una respuesta adecuada
         String token = jwtProvider.generateToken(authentication);
 
         User user = (User) authentication.getPrincipal();
 
+        refreshTokenService.deleteByUser(user);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(JwtUserResponse.of(user, token));
+                .body(JwtUserResponse.of(user, token, refreshToken.getToken()));
 
 
     }
@@ -112,7 +117,7 @@ public class UserController {
         return ResponseEntity.ok(UserResponse.fromUser(user));
     }
 
-    @PostMapping("logout-user")
+    @PostMapping("/logout-user")
     public ResponseEntity<String> logout(HttpServletRequest request) {
         String token = userService.extractTokenFromRequest(request);
         tokenBlacklist.addToBlacklist(token);
@@ -122,5 +127,26 @@ public class UserController {
         return ResponseEntity.ok("Logged out successfully");
     }
 
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshToken(@RequestBody TokenRefreshRequest tokenRefreshRequest){
+        String refreshToken = tokenRefreshRequest.getRefreshToken();
 
+
+        return refreshTokenService.findByToken(refreshToken)
+                .map(refreshTokenService::verify)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtProvider.generateToken(user);
+                    refreshTokenService.deleteByUser(user);
+                    RefreshToken refreshToken2 = refreshTokenService.createRefreshToken(user);
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(JwtUserResponse.builder()
+                                    .token(token)
+                                    .refreshToken(refreshToken2.getToken())
+                                    .build());
+                })
+                .orElseThrow(() -> new RefreshException(refreshToken, "no encontrado"));
+
+    }
 }
+

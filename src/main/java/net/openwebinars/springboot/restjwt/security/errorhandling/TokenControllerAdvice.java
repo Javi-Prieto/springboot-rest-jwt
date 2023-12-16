@@ -51,6 +51,16 @@ public class TokenControllerAdvice  {
                 ));
     }
 
+    @ExceptionHandler({RefreshException.class})
+    public ResponseEntity<?> handleRefreshException(RefreshException ex, HttpServletRequest request){
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorMessage.of(
+                        HttpStatus.UNAUTHORIZED,
+                        ex.getMessage(),
+                        request.getRequestURI()
+                ));
+    }
+
     @Getter
     @Setter
     @AllArgsConstructor
